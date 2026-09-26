@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flashcards of Hjyeon</title>
+  <style>
+    :root{
+      --bg:#ffffff;
+      --card:#f2d7d3; /* khung chính màu hồng nhạt */
+      --ink:#d84a3a;  /* chữ hồng đỏ */
+      --muted:#a8736e;
+      --accent:#d84a3a;
+      --accent-weak:#fcebea;
+      --border:#f8bfb9;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      background:url('anhtrang01.png') no-repeat center center fixed;
+      background-size:cover;
+      color:var(--ink);
+    }
+    /* phủ mờ 70% ảnh nền để nổi khung chính */
+    body::before{
+      content:""; position:fixed; inset:0; background:rgba(255,255,255,0.7); z-index:-1;
+    }
+
+    header{position:sticky;top:0;background:rgba(255,255,255,0.6);backdrop-filter:saturate(180%) blur(6px);border-bottom:1px solid var(--border);z-index:10}
+    .wrap{max-width:880px;margin:0 auto;padding:16px}
+    h1{font-size:22px;margin:0 0 6px 0;color:var(--ink);}
+    .sub{font-size:12px;color:var(--muted);}
+    .panel{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;margin-top:10px}
+    .controls{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+    input[type="text"]{padding:10px 12px;border:1px solid var(--border);border-radius:10px;outline:none;width:100%;background:#fff}
+    input[type="text"]:focus{border-color:var(--accent)}
+    button{border:1px solid var(--border);background:#fff;border-radius:12px;padding:10px 14px;cursor:pointer;color:var(--ink)}
+    button.primary{background:var(--accent);border-color:transparent;color:#fff}
+    button.ghost{background:var(--accent-weak);border-color:transparent;color:var(--ink)}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    .pill{font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fff;color:var(--muted)}
+
+    main{display:grid;justify-items:center;padding:20px}
+
+    /* Card */
+    .stage{width:min(600px,94vw);height:min(60vh,520px);min-height:360px;display:grid;place-items:center;margin:18px 0}
+    .card{width:100%;height:100%;border-radius:20px;background:var(--card);box-shadow:0 14px 36px rgba(216,74,58,.18);cursor:pointer;perspective:1200px;position:relative;border:1px solid var(--border)}
+    .card-inner{position:absolute;inset:0;border-radius:20px;transform-style:preserve-3d;transition:transform .6s}
+    .card.flipped .card-inner{transform:rotateY(180deg)}
+    .face{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;padding:28px;border-radius:20px;backface-visibility:hidden}
+    .front{background:linear-gradient(180deg,#f2d7d3, #f9e5e2)}
+    .front h2{font-size:40px;line-height:1.1;margin:0;text-align:center;color:var(--ink)}
+    .badge{font-size:12px;color:var(--ink);background:var(--accent-weak);padding:6px 10px;border-radius:999px;border:1px dashed var(--border)}
+    .back{transform:rotateY(180deg);background:var(--card)}
+    .meaning{font-size:20px;line-height:1.45;text-align:center;color:var(--ink)}
+    .muted{color:var(--muted)}
+
+    /* Footer controls */
+    .nav{display:flex;gap:10px;align-items:center;justify-content:center}
+    .counter{font-size:14px;color:var(--muted)}
+
+    /* Add/Edit form */
+    details.box{width:min(600px,94vw);background:#fff;border:1px solid var(--border);border-radius:16px;padding:12px 12px 16px;box-shadow:0 10px 24px rgba(2,6,23,.05)}
+    details.box>summary{cursor:pointer;list-style:none;padding:6px 2px;font-weight:600;color:var(--ink)}
+    details.box[open]>summary{margin-bottom:8px}
+    .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    label{font-size:12px;color:var(--muted)}
+    .hint{font-size:12px;color:var(--muted)}
+    .tiny{font-size:12px}
+    .switch{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--ink)}
+    .foot{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:8px}
+
+    @media (max-width:760px){
+      .grid{grid-template-columns:1fr}
+      .panel{grid-template-columns:1fr;gap:6px}
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Flashcards of Hjyeon</h1>
+    <div class="sub">Nhấp vào thẻ để lật • Space: lật | ←/→: chuyển thẻ | Enter: tìm kiếm</div>
+
+    <div class="panel">
+      <input id="search" type="text" placeholder="Tìm từ (KO/VI)…" />
+
+      <div class="controls">
+        <label class="switch">
+          <input id="toggle-ko" type="checkbox" checked>
+          <span>Hiện nghĩa</span>
+        </label>
+
+        <label class="switch">
+          <input id="toggle-vi" type="checkbox" checked>
+          <span>Hiện ví dụ</span>
+        </label>
+
+        <button id="shuffle" class="ghost" title="Xáo trộn">🔀 Xáo</button>
+      </div>
+
+      <div class="controls">
+        <button id="btn-export" title="Xuất JSON">⬇️ Xuất</button>
+
+        <label class="switch" title="Nhập JSON">
+          <input id="file" type="file" accept="application/json">
+          <span>⬆️ Nhập</span>
+        </label>
+      </div>
+    </div>
+  </div>
+</header>
+
+
+  <main>
+    <div class="stage">
+      <div id="card" class="card" aria-live="polite" role="button" tabindex="0">
+        <div class="card-inner">
+          <div class="face front">
+            <span class="badge">KO</span>
+            <h2 id="front-word">loading…</h2>
+            <div class="hint">Nhấp để xem nghĩa</div>
+          </div>
+          <div class="face back">
+            <div class="badge">VI</div>
+            <div class="meaning" id="back-meaning"></div>
+            <div class="hint muted">Nhấp để quay lại</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <button id="prev">◀︎ Trước</button>
+      <button id="flip" class="primary">Lật thẻ</button>
+      <button id="next">Sau ▶︎</button>
+      <span class="counter" id="counter">0 / 0</span>
+      <button id="edit" title="Sửa thẻ hiện tại">✏️ Sửa</button>
+      <button id="del" title="Xoá thẻ hiện tại" style="color:#b91c1c;border-color:#fecaca;background:#fff0f0">🗑️ Xoá</button>
+    </div>
+
+    <details class="box">
+      <summary>＋ Thêm từ mới</summary>
+      <div class="grid">
+        <div>
+          <label>English</label>
+          <input id="in-en" type="text" placeholder="vd. innovative" />
+        </div>
+        <div>
+          <label>한국어 뜻</label>
+          <input id="in-ko" type="text" placeholder="vd. 혁신적인" />
+        </div>
+        <div>
+          <label>Tiếng Việt</label>
+          <input id="in-vi" type="text" placeholder="vd. đổi mới, sáng tạo" />
+        </div>
+      </div>
+      <div class="foot">
+        <span class="tiny muted">Mẹo: thêm nhanh rồi Enter để lưu.</span>
+        <div class="row">
+          <button id="add" class="primary">Lưu từ</button>
+          <button id="clear-all" title="Xoá toàn bộ bộ thẻ" style="border-color:#fecaca">🧹 Xoá tất cả</button>
+        </div>
+      </div>
+    </details>
+
+    <p class="tiny muted" style="margin-top:14px">Học chăm họ giỏi cô thương.</p>
+  </main>
+
+  <script>
+  (function(){
+    const LS_KEY = 'flatcards_v1';
+    const $ = (sel)=>document.querySelector(sel);
+
+    const sample = [
+
+{en:'학생', ko:'Học sinh', vi:'저는 학생입니다. (Tôi là học sinh.)'},
+{en:'선생님', ko:'Giáo viên', vi:'선생님이 교실에 계십니다. (Giáo viên đang ở trong lớp.)'},
+
+
+
+
+
+      
+
+   ];
+
+let all = sample.slice();
+saveAll();
+
+
+    let view = all.slice();
+    let idx = 0;
+    let flipped = false;
+
+    // Elements
+    const card = $('#card');
+    const frontWord = $('#front-word');
+    const backMeaning = $('#back-meaning');
+    const counter = $('#counter');
+    const search = $('#search');
+    const toggleKO = $('#toggle-ko');
+    const toggleVI = $('#toggle-vi');
+
+    function saveAll(){ localStorage.setItem(LS_KEY, JSON.stringify(all)); }
+    function loadAll(){ return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }
+
+    function shuffle(arr){
+      for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+      return arr;
+    }
+
+    function render(){
+      if(view.length===0){
+        frontWord.textContent = 'Không có thẻ';
+        backMeaning.innerHTML = '<span class="muted">Hãy thêm từ mới.</span>';
+        $('#prev').disabled = $('#next').disabled = $('#flip').disabled = true;
+        counter.textContent = '0 / 0';
+        card.classList.remove('flipped');
+        return;
+      }
+      $('#prev').disabled = $('#next').disabled = $('#flip').disabled = false;
+      idx = (idx + view.length) % view.length;
+      const c = view[idx];
+      frontWord.textContent = c.en;
+      const segs = [];
+      if(toggleKO.checked && c.ko) segs.push(`<div>${escapeHtml(c.ko)}</div>`);
+if(toggleVI.checked && c.vi) segs.push(`<div>${escapeHtml(c.vi)}</div>`);
+      backMeaning.innerHTML = segs.join('');
+      counter.textContent = `${idx+1} / ${view.length}`;
+      if(!flipped) card.classList.remove('flipped');
+      else card.classList.add('flipped');
+
+    }
+
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m])); }
+
+    function applyFilter(){
+      const q = search.value.trim().toLowerCase();
+      view = all.filter(c=>{
+        if(!q) return true;
+        return [c.en,c.ko,c.vi].filter(Boolean).some(x=>x.toLowerCase().includes(q));
+      });
+      idx = 0; render();
+    }
+
+    // Events
+    $('#flip').addEventListener('click', ()=>{ flipped=!flipped; card.classList.toggle('flipped', flipped); });
+    card.addEventListener('click', ()=>{ flipped=!flipped; card.classList.toggle('flipped', flipped); });
+    $('#next').addEventListener('click', ()=>{ idx++; flipped=false; render(); });
+    $('#prev').addEventListener('click', ()=>{ idx--; flipped=false; render(); });
+
+    document.addEventListener('keydown', (e)=>{
+      if(e.key==='ArrowRight'){ e.preventDefault(); $('#next').click(); }
+      if(e.key==='ArrowLeft'){ e.preventDefault(); $('#prev').click(); }
+      if(e.key===' '){ e.preventDefault(); $('#flip').click(); }
+      if(e.key==='Enter' && document.activeElement===search){ applyFilter(); }
+    });
+
+    search.addEventListener('input', ()=>{ applyFilter(); });
+    $('#shuffle').addEventListener('click', ()=>{ view = shuffle(view); idx=0; flipped=false; render(); });
+    toggleKO.addEventListener('change', render);
+    toggleVI.addEventListener('change', render);
+
+    // Add new card
+    function addCard(en,ko,vi){
+      if(!en){ alert('Vui lòng nhập English'); return; }
+      all.push({en:en.trim(), ko:ko.trim(), vi:vi.trim()});
+      saveAll();
+      applyFilter();
+      if(!search.value){ idx = all.length-1; }
+      flipped=false; render();
+    }
+
+    $('#add').addEventListener('click', ()=>{
+      const en=$('#in-en').value, ko=$('#in-ko').value, vi=$('#in-vi').value;
+      addCard(en,ko,vi);
+      $('#in-en').value = $('#in-ko').value = $('#in-vi').value = '';
+      $('#in-en').focus();
+    });
+    ['#in-en','#in-ko','#in-vi'].forEach(sel=>$(sel).addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#add').click(); }}));
+
+    // Edit current
+    $('#edit').addEventListener('click', ()=>{
+      if(view.length===0) return;
+      const curr = view[idx];
+      const en = prompt('Sửa EN', curr.en); if(en===null) return;
+      const ko = prompt('Sửa KO', curr.ko||'') ?? '';
+      const vi = prompt('Sửa VI', curr.vi||'') ?? '';
+      const masterIndex = all.findIndex(c=>c===curr || (c.en===curr.en && c.ko===curr.ko && c.vi===curr.vi));
+      if(masterIndex>-1){ all[masterIndex] = {en:en.trim(), ko:ko.trim(), vi:vi.trim()}; saveAll(); applyFilter(); render(); }
+    });
+
+    // Delete current
+    $('#del').addEventListener('click', ()=>{
+      if(view.length===0) return;
+      const curr = view[idx];
+      if(!confirm(`Xoá thẻ: "${curr.en}"?`)) return;
+      const masterIndex = all.findIndex(c=>c===curr || (c.en===curr.en && c.ko===curr.ko && c.vi===curr.vi));
+      if(masterIndex>-1){ all.splice(masterIndex,1); saveAll(); applyFilter(); idx=0; flipped=false; render(); }
+    });
+
+    // Clear all
+    $('#clear-all').addEventListener('click', ()=>{
+      if(confirm('Xoá toàn bộ bộ thẻ?')){ all=[]; saveAll(); applyFilter(); render(); }
+    });
+
+    // Export JSON
+    $('#btn-export').addEventListener('click', ()=>{
+      const blob = new Blob([JSON.stringify(all,null,2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'flatcards_vocab.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 500);
+    });
+
+    // Import JSON
+    $('#file').addEventListener('change', async (e)=>{
+      const file = e.target.files[0]; if(!file) return;
+      try{
+        const text = await file.text();
+        const data = JSON.parse(text);
+        if(!Array.isArray(data)) throw new Error('Định dạng JSON không hợp lệ');
+        all = data.map(x=>({en:String(x.en||'').trim(), ko:String(x.ko||'').trim(), vi:String(x.vi||'').trim()})).filter(x=>x.en);
+        saveAll(); search.value=''; view=all.slice(); idx=0; flipped=false; render();
+      }catch(err){ alert('Không thể nhập JSON: '+ err.message); }
+      e.target.value='';
+    });
+
+    // First render
+    applyFilter(); render();
+  })();
+  </script>
+</body>
+</html>
